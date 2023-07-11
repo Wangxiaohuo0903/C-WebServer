@@ -13,15 +13,16 @@ class WebServer
 public:
     WebServer();
     ~WebServer();
-    void init(int thread_num);
+    void init(int thread_num, int close_log);
     void thread_pool_init();
     void sql_pool();
-    void log_write();
+    void log_init();
     void event_listen();
     void event_loop();
 
 public:
     int m_thread_num;
     int m_listenfd;
+    int m_close_log;
     ThreadPool *m_thread_pool;
 };

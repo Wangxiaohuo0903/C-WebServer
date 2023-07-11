@@ -7,9 +7,15 @@ WebServer::~WebServer()
     close(m_listenfd);
     delete m_thread_pool;
 }
-void WebServer::init(int thread_num)
+void WebServer::init(int thread_num, int close_log)
 {
     m_thread_num = thread_num;
+    m_close_log = close_log;
+}
+
+void WebServer::log_init()
+{
+    Log::get_instance()->init("./ServerLog", m_close_log, 2000, 800000, 800);
 }
 
 void WebServer::thread_pool_init()
@@ -29,12 +35,15 @@ void WebServer::event_listen()
     }
     // 设置服务器地址
     struct sockaddr_in server_addr;
+    bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(12345);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     // 绑定服务器套接字
-    if (bind(m_listenfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+    int flag = 1;
+    setsockopt(m_listenfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
+    if (::bind(m_listenfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
         perror("bind failed");
         exit(EXIT_FAILURE);
