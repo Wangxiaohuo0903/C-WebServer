@@ -1,6 +1,8 @@
+#pragma once
 #include "lock.h"
 #include <unistd.h>
 #include <string.h>
+#include "log/log.h"
 
 enum class ParseState
 {
@@ -33,6 +35,7 @@ public:
     {
         // 读取请求
         int n = read(m_sockfd, m_read_buf, READ_BUFFER_SIZE - 1);
+        LOG_INFO("start read");
         if (n <= 0)
         {
             // 出错或连接关闭
@@ -62,4 +65,6 @@ private:
     int m_sockfd;
     static const int READ_BUFFER_SIZE = 1024;
     char m_read_buf[READ_BUFFER_SIZE];
+    Log *m_logger;
+    int m_close_log = 0; // 是否开启日志
 };
