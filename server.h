@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <fcntl.h>
+#include "log/log.h"
 class WebServer
 {
 public:

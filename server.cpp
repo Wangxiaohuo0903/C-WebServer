@@ -37,12 +37,12 @@ void WebServer::event_listen()
     struct sockaddr_in server_addr;
     bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(12345);
+    server_addr.sin_port = htons(12346);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     // 绑定服务器套接字
     int flag = 1;
-    setsockopt(m_listenfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
+    // setsockopt(m_listenfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
     if (::bind(m_listenfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
         perror("bind failed");
@@ -68,19 +68,19 @@ void WebServer::event_loop()
 
     // 注册事件
     kevent(kq, changes, 1, NULL, 0, NULL);
-
+    struct kevent events[10];
     while (true)
     {
-        struct kevent events[10];
+
         int nevents = kevent(kq, NULL, 0, events, 10, NULL);
 
-        struct sockaddr_in client_addr;
-        socklen_t client_addrlen = sizeof(client_addr);
         for (int i = 0; i < nevents; i++)
         {
             if (events[i].ident == m_listenfd)
             {
                 // 新的连接
+                struct sockaddr_in client_addr;
+                socklen_t client_addrlen = sizeof(client_addr);
                 int client_sock = accept(m_listenfd, (struct sockaddr *)&client_addr, &client_addrlen);
                 int flags = fcntl(client_sock, F_GETFL, 0);
                 if (flags == -1 || fcntl(client_sock, F_SETFL, flags | O_NONBLOCK) == -1)

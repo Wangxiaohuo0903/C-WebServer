@@ -7,79 +7,119 @@
 #include <mutex>
 #include <condition_variable>
 #include <functional>
+#include <atomic>
+#include <future>
+
+template <typename T>
+class ConcurrentQueue
+{
+public:
+    ConcurrentQueue() : m_queue(), m_mutex(), m_condition(), m_stopped(false) {}
+
+    ~ConcurrentQueue() {}
+
+    void push(T value)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_queue.push(value);
+        m_condition.notify_one();
+    }
+
+    bool pop(T &value)
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_condition.wait(lock, [this]
+                         { return !m_queue.empty() || m_stopped; });
+        if (m_stopped && m_queue.empty())
+        {
+            return false;
+        }
+        value = m_queue.front();
+        m_queue.pop();
+        return true;
+    }
+
+    void stop()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_stopped = true;
+        m_condition.notify_all();
+    }
+
+    bool empty() const
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_queue.empty();
+    }
+
+    size_t size() const
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_queue.size();
+    }
+
+private:
+    std::queue<T> m_queue;
+    mutable std::mutex m_mutex;
+    std::condition_variable m_condition;
+    std::atomic<bool> m_stopped;
+};
 
 class ThreadPool
 {
 public:
-    ThreadPool(size_t threads);
-    ~ThreadPool();
+    ThreadPool(size_t threads) : workers(threads)
+    {
+        for (auto &worker : workers)
+        {
+            worker = std::thread([this]
+                                 { this->worker(); });
+        }
+    }
+    ~ThreadPool()
+    {
+        tasks.stop();
+        for (auto &worker : workers)
+        {
+            if (worker.joinable())
+            {
+                worker.join();
+            }
+        }
+    }
 
     template <class F, class... Args>
-    void enqueue(F &&f, Args &&...args);
+    auto enqueue(F &&f, Args &&...args) -> std::future<typename std::result_of<F(Args...)>::type>
+    {
+        using return_type = typename std::result_of<F(Args...)>::type;
+
+        auto task = std::make_shared<std::packaged_task<return_type()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+
+        std::future<return_type> res = task->get_future();
+        tasks.push([task]()
+                   { (*task)(); });
+
+        return res;
+    }
 
 private:
     // 线程池
     std::vector<std::thread> workers;
     // 任务队列
-    std::queue<std::function<void()>> tasks;
+    ConcurrentQueue<std::function<void()>> tasks;
 
-    // 同步
-    std::mutex queue_mutex;
-    std::condition_variable condition;
-    bool stop;
-};
-
-// 构造函数
-inline ThreadPool::ThreadPool(size_t threads)
-    : stop(false)
-{
-    for (size_t i = 0; i < threads; ++i)
-        workers.emplace_back(
-            [this]
+    void worker()
+    {
+        while (true)
+        {
+            std::function<void()> task;
+            if (!tasks.pop(task))
             {
-                for (;;)
-                {
-                    std::function<void()> task;
-
-                    {
-                        std::unique_lock<std::mutex> lock(this->queue_mutex);
-                        this->condition.wait(lock,
-                                             [this]
-                                             { return this->stop || !this->tasks.empty(); });
-                        if (this->stop && this->tasks.empty())
-                            return;
-                        task = std::move(this->tasks.front());
-                        this->tasks.pop();
-                    }
-
-                    task();
-                }
-            });
-}
-
-// 添加新的工作任务
-template <class F, class... Args>
-void ThreadPool::enqueue(F &&f, Args &&...args)
-{
-    {
-        std::unique_lock<std::mutex> lock(queue_mutex);
-
-        // 添加任务到任务队列
-        tasks.emplace(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+                break;
+            }
+            task();
+        }
     }
-    condition.notify_one();
-}
-
-// 析构函数
-inline ThreadPool::~ThreadPool()
-{
-    {
-        std::unique_lock<std::mutex> lock(queue_mutex);
-        stop = true;
-    }
-    condition.notify_all();
-    for (std::thread &worker : workers)
-        worker.join();
-}
+};
 
 #endif

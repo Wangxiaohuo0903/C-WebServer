@@ -35,7 +35,6 @@ public:
     {
         // 读取请求
         int n = read(m_sockfd, m_read_buf, READ_BUFFER_SIZE - 1);
-        LOG_INFO("start read");
         if (n <= 0)
         {
             // 出错或连接关闭
@@ -56,7 +55,6 @@ public:
         // 生成响应
         const char *response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\nHello, World!";
         write(m_sockfd, response, strlen(response));
-
         // 关闭连接
         close(m_sockfd);
     }
