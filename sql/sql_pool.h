@@ -1,6 +1,6 @@
 #include <queue>
 #include <sqlite3.h>
-#include <pthread.h>
+#include <mutex>
 class SqlConnectionPool
 {
 public:

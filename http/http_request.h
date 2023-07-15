@@ -187,6 +187,17 @@ public:
         return response;
     }
 
+    void setStatusCode(int status_code)
+    {
+        this->status_code = status_code;
+    }
+
+    // 设置HTTP响应的响应体
+    void setBody(const std::string &body)
+    {
+        this->body = body;
+    }
+
 private:
     int status_code;
     std::map<std::string, std::string> headers;

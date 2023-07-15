@@ -3,7 +3,7 @@
 #define HTTP_CONN_H
 
 #include "http_request.h"
-#include "./sql/sql_pool.h"
+#include "../sql/sql_pool.h"
 
 class HttpConn
 {

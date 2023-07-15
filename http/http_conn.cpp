@@ -105,3 +105,42 @@ void HttpConn::handleRegister(const HttpRequest &request, HttpResponse &response
     // 将连接返回到数据库连接池
     SqlConnectionPool::getInstance()->returnConnection(conn);
 }
+
+void HttpConn::handleLogin(const HttpRequest &request, HttpResponse &response)
+{
+    // 从HttpRequest中获取用户名和密码
+    std::string username = request.getParam("username");
+    std::string password = request.getParam("password");
+
+    // 在数据库中查询用户名和密码
+    std::string sql = "SELECT password FROM users WHERE username='" + username + "'";
+    char *errmsg;
+    char **result;
+    int nrow, ncolumn;
+    int rc = sqlite3_get_table(sql_pool->getConnection(), sql.c_str(), &result, &nrow, &ncolumn, &errmsg);
+    if (rc != SQLITE_OK)
+    {
+        // 查询失败，返回500错误
+        response.makeErrorResponse(500);
+        return;
+    }
+
+    if (nrow == 0)
+    {
+        // 用户名不存在，返回403错误
+        response.makeErrorResponse(400);
+        return;
+    }
+
+    // 比较查询到的密码和用户提交的密码
+    if (password != result[1])
+    {
+        // 密码不正确，返回403错误
+        response.makeErrorResponse(400);
+        return;
+    }
+
+    // 登录成功，返回200状态码和欢迎信息
+    response.setStatusCode(200);
+    response.setBody("Welcome, " + username + "!");
+}
