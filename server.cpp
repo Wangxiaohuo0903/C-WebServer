@@ -1,3 +1,4 @@
+#pragma once
 #include "server.h"
 
 WebServer::WebServer() : m_thread_num(0), m_listenfd(-1), m_thread_pool(nullptr) {}
@@ -33,11 +34,12 @@ void WebServer::event_listen()
         perror("socket failed");
         return;
     }
+    std::cout << "m_listenfd: " << m_listenfd << std::endl;
     // 设置服务器地址
     struct sockaddr_in server_addr;
     bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(12346);
+    server_addr.sin_port = htons(12347);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     // 绑定服务器套接字

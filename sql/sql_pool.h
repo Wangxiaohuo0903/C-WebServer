@@ -1,3 +1,4 @@
+#pragma once
 #include <queue>
 #include <sqlite3.h>
 #include <mutex>

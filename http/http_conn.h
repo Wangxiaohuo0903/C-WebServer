@@ -1,4 +1,5 @@
 // http_conn.h
+#pragma once
 #ifndef HTTP_CONN_H
 #define HTTP_CONN_H
 

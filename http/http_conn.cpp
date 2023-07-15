@@ -30,7 +30,7 @@ enum class LineState
 void HttpConn::init(int sockfd)
 {
     m_sockfd = sockfd;
-    // memset(m_read_buf, 0, READ_BUFFER_SIZE);
+    memset(m_read_buf, 0, READ_BUFFER_SIZE);
 }
 
 void HttpConn::process()
@@ -54,17 +54,33 @@ void HttpConn::process()
     }
 
     // 生成响应
-
     if (request.method == HttpRequest::Method::POST)
     {
         if (request.path == "/register")
+        {
+            LOG_INFO("start register");
             handleRegister(request, response);
-        else if (request.path == "/login")
-            handleLogin(request, response);
-    }
+        }
 
-    // const char *response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\nHello, World!";
+        else if (request.path == "/login")
+        {
+            LOG_INFO("start login");
+            handleLogin(request, response);
+        }
+    }
+    else if (request.method == HttpRequest::Method::GET)
+    {
+        LOG_INFO("return GET");
+        response = HttpResponse::makeOkResponse();
+    }
+    LOG_INFO("m_sockfd at return time");
+    std::cout << "m_sockfd: " << m_sockfd << std::endl;
+    // LOG_INFO("m_sockfd at return time : %d", m_sockfd);
+    // const char *response1 = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\nHello, World!";
+    // write(m_sockfd, response1, strlen(response1));
+    std::cout << response.serialize().c_str() << std::endl;
     write(m_sockfd, response.serialize().c_str(), response.serialize().length());
+    std::cout << "END" << std::endl;
     // 关闭连接
     close(m_sockfd);
 }
@@ -83,26 +99,41 @@ void HttpConn::handleRegister(const HttpRequest &request, HttpResponse &response
         response = HttpResponse::makeErrorResponse(500);
         return;
     }
-
-    // 构造SQL查询
-    std::string sql = "INSERT INTO users (username, password) VALUES ('" + username + "', '" + password + "')";
-
-    // 执行SQL查询
-    char *errmsg;
-    if (sqlite3_exec(conn, sql.c_str(), nullptr, nullptr, &errmsg) != SQLITE_OK)
+    // 检查用户名是否已存在
+    std::string checkUsernameSQL = "SELECT username FROM users WHERE username = '" + username + "'";
+    int result = sqlite3_exec(conn, checkUsernameSQL.c_str(), nullptr, nullptr, nullptr);
+    if (result != SQLITE_ROW)
     {
-        // 如果查询失败，返回500 Internal Server Error，并打印错误信息
-        std::cerr << "SQL error: " << errmsg << std::endl;
-        sqlite3_free(errmsg);
-        response = HttpResponse::makeErrorResponse(500);
+        // 用户名已存在，返回自定义的错误响应
+
+        response = HttpResponse::makeOkResponse("Username already exists");
     }
     else
     {
-        // 如果查询成功，返回200 OK
-        response = HttpResponse::makeOkResponse();
+
+        // 构造SQL查询
+        std::string sql = "INSERT INTO users (username, password) VALUES ('" + username + "', '" + password + "')";
+
+        // 执行SQL查询
+        char *errmsg;
+        if (sqlite3_exec(conn, sql.c_str(), nullptr, nullptr, &errmsg) != SQLITE_OK)
+        {
+            // 如果查询失败，返回500 Internal Server Error，并打印错误信息
+            std::cerr << "SQLL error: " << errmsg << std::endl;
+            sqlite3_free(errmsg);
+            response = HttpResponse::makeErrorResponse(500);
+        }
+        else
+        {
+            std::cout << "success register" << std::endl;
+            // 如果查询成功，返回200 OK
+            LOG_INFO("success register");
+            response = HttpResponse::makeOkResponse("success register");
+        }
     }
 
     // 将连接返回到数据库连接池
+
     SqlConnectionPool::getInstance()->returnConnection(conn);
 }
 

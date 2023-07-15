@@ -1,3 +1,4 @@
+#pragma once
 #include "sql_pool.h"
 #include <sqlite3.h>
 #include <iostream>
@@ -13,10 +14,11 @@ SqlConnectionPool::SqlConnectionPool()
     for (int i = 0; i < 8; ++i)
     {
         sqlite3 *conn;
-        if (sqlite3_open("test.db", &conn) != SQLITE_OK)
+        if (sqlite3_open("users.db", &conn) != SQLITE_OK)
         {
             std::cerr << "Error opening database: " << sqlite3_errmsg(conn) << std::endl;
-            return;
+            sqlite3_close(conn);
+            throw std::runtime_error("Error opening database");
         }
         m_connections.push(conn);
     }

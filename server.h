@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <fcntl.h>
+#pragma once
 #include <sys/socket.h>
 #include <fcntl.h>
 #include "log/log.h"

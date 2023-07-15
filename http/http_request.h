@@ -1,4 +1,5 @@
 // http_request.h
+#pragma once
 #ifndef HTTP_REQUEST_H
 #define HTTP_REQUEST_H
 
@@ -158,12 +159,12 @@ public:
         return response;
     }
 
-    static HttpResponse makeErrorResponse(int status_code)
+    static HttpResponse makeErrorResponse(int status_code, const std::string &error_message = "")
     {
         HttpResponse response;
         response.set_status_code(status_code);
         response.set_header("Content-Type", "text/plain");
-        response.set_body("Error " + std::to_string(status_code));
+        response.set_body("Error " + std::to_string(status_code) + ": " + error_message);
         return response;
     }
 
@@ -175,15 +176,16 @@ public:
             response += header.first + ": " + header.second + "\r\n";
         }
         response += "\r\n" + body;
+        // std::cout << response.c_str() << std::endl;
         return response;
     }
 
-    static HttpResponse makeOkResponse()
+    static HttpResponse makeOkResponse(const std::string &ok_message = "")
     {
         HttpResponse response;
         response.set_status_code(200);
         response.set_header("Content-Type", "text/plain");
-        response.set_body("OK");
+        response.set_body("OK 200: " + ok_message);
         return response;
     }
 

@@ -1,3 +1,4 @@
+#pragma once
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
@@ -6,7 +7,8 @@
 #include <pthread.h>
 using namespace std;
 
-Log::Log()
+Log::Log() : m_fp(nullptr)
+
 {
     m_count = 0;
     m_is_async = false;
