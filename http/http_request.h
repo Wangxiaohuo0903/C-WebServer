@@ -91,6 +91,33 @@ public:
         return true;
     }
 
+    std::string getParam(const std::string &name) const
+    {
+        size_t param_start = path.find("?");
+        if (param_start == std::string::npos)
+        {
+            return "";
+        }
+        std::string query_string = path.substr(param_start + 1);
+        std::istringstream iss(query_string);
+        std::string token;
+        while (std::getline(iss, token, '&'))
+        {
+            size_t equal_sign = token.find("=");
+            if (equal_sign == std::string::npos)
+            {
+                continue;
+            }
+            std::string key = token.substr(0, equal_sign);
+            std::string value = token.substr(equal_sign + 1);
+            if (key == name)
+            {
+                return value;
+            }
+        }
+        return "";
+    }
+
     Method method;
     std::string path;
     std::string version;
@@ -128,6 +155,35 @@ public:
             response += header.first + ": " + header.second + "\r\n";
         }
         response += "\r\n" + body;
+        return response;
+    }
+
+    static HttpResponse makeErrorResponse(int status_code)
+    {
+        HttpResponse response;
+        response.set_status_code(status_code);
+        response.set_header("Content-Type", "text/plain");
+        response.set_body("Error " + std::to_string(status_code));
+        return response;
+    }
+
+    std::string serialize() const
+    {
+        std::string response = "HTTP/1.1 " + std::to_string(status_code) + " OK\r\n";
+        for (const auto &header : headers)
+        {
+            response += header.first + ": " + header.second + "\r\n";
+        }
+        response += "\r\n" + body;
+        return response;
+    }
+
+    static HttpResponse makeOkResponse()
+    {
+        HttpResponse response;
+        response.set_status_code(200);
+        response.set_header("Content-Type", "text/plain");
+        response.set_body("OK");
         return response;
     }
 

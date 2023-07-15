@@ -3,7 +3,7 @@
 #define HTTP_CONN_H
 
 #include "http_request.h"
-#include "../sql_pool.h"
+#include "./sql/sql_pool.h"
 
 class HttpConn
 {
@@ -11,6 +11,8 @@ public:
     HttpConn() : request() {}
     void init(int sockfd);
     void process();
+    void handleRegister(const HttpRequest &request, HttpResponse &response);
+    void handleLogin(const HttpRequest &request, HttpResponse &response);
 
 private:
     HttpRequest request;
