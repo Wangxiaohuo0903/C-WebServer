@@ -8,7 +8,7 @@ CFLAGS = -Wall -std=c++11 -pthread
 TARGET = server
 
 # 源文件
-SOURCES = main.cpp http_conn.cpp server.cpp log/log.cpp
+SOURCES = main.cpp http/http_conn.cpp server.cpp log/log.cpp
 
 # 对象文件
 OBJECTS = $(SOURCES:.cpp=.o)

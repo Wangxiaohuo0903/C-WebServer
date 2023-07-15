@@ -4,11 +4,13 @@
 
 #include <string>
 #include <unordered_map>
+#include <map>
 #include "../lock.h"
 #include <unistd.h>
 #include "../log/log.h"
 #include "http_request.h"
 #include <sstream>
+#include <sqlite3.h>
 class HttpRequest
 {
 public:
@@ -62,7 +64,7 @@ public:
         {
             return false;
         }
-        if (!(iss_line >> this->uri))
+        if (!(iss_line >> this->path))
         {
             return false;
         }
@@ -90,12 +92,49 @@ public:
     }
 
     Method method;
-    std::string uri;
+    std::string path;
     std::string version;
     std::unordered_map<std::string, std::string> headers;
 
 private:
     ParseState parseState;
+};
+
+class HttpResponse
+{
+public:
+    HttpResponse() : status_code(200), headers(), body() {}
+
+    void set_status_code(int code)
+    {
+        status_code = code;
+    }
+
+    void set_header(const std::string &name, const std::string &value)
+    {
+        headers[name] = value;
+    }
+
+    void set_body(const std::string &b)
+    {
+        body = b;
+    }
+
+    std::string to_string() const
+    {
+        std::string response = "HTTP/1.1 " + std::to_string(status_code) + " OK\r\n";
+        for (const auto &header : headers)
+        {
+            response += header.first + ": " + header.second + "\r\n";
+        }
+        response += "\r\n" + body;
+        return response;
+    }
+
+private:
+    int status_code;
+    std::map<std::string, std::string> headers;
+    std::string body;
 };
 
 #endif // HTTP_REQUEST_H

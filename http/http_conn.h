@@ -3,6 +3,7 @@
 #define HTTP_CONN_H
 
 #include "http_request.h"
+#include "../sql_pool.h"
 
 class HttpConn
 {
@@ -17,7 +18,8 @@ private:
     static const int READ_BUFFER_SIZE = 1024;
     char m_read_buf[READ_BUFFER_SIZE];
     Log *m_logger;
-    int m_close_log = 0; // 是否开启日志
+    int m_close_log = 0;         // 是否开启日志
+    SqlConnectionPool *sql_pool; //
 };
 
 #endif // HTTP_CONN_H

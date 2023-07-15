@@ -95,7 +95,7 @@ void WebServer::event_loop()
             else
             {
                 // 已有的连接
-                http_conn *conn = new http_conn;
+                HttpConn *conn = new HttpConn;
                 conn->init(events[i].ident);
                 m_thread_pool->enqueue([conn]
                                        { conn->process(); delete conn; });
