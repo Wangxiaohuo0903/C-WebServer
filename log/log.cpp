@@ -1,37 +1,38 @@
 #pragma once
+#include "log.h"
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
 #include <stdarg.h>
-#include "log.h"
 #include <pthread.h>
 using namespace std;
 
-Log::Log() : m_fp(nullptr)
-
+Log::Log() : m_count(0), m_is_async(false)
 {
-    m_count = 0;
-    m_is_async = false;
+    m_buf = new char[m_log_buf_size];
+    memset(m_buf, '\0', m_log_buf_size);
 }
 
 Log::~Log()
 {
-    if (m_fp != NULL)
+    if (write_thread && write_thread->joinable())
     {
-        fclose(m_fp);
+        write_thread->join();
+    }
+    if (log_file)
+    {
+        log_file->close();
     }
 }
-// 异步需要设置阻塞队列的长度，同步不需要设置
+
 bool Log::init(const char *file_name, int close_log, int log_buf_size, int split_lines, int max_queue_size)
 {
-    // 如果设置了max_queue_size,则设置为异步
     if (max_queue_size >= 1)
     {
         m_is_async = true;
         m_log_queue = new block_queue<string>(max_queue_size);
         pthread_t tid;
-        // flush_log_thread为回调函数,这里表示创建线程异步写日志
-        pthread_create(&tid, NULL, flush_log_thread, NULL);
+        write_thread.reset(new std::thread(&Log::flush_log_thread, this));
     }
 
     m_close_log = close_log;
@@ -60,8 +61,9 @@ bool Log::init(const char *file_name, int close_log, int log_buf_size, int split
 
     m_today = my_tm.tm_mday;
 
-    m_fp = fopen(log_full_name, "a");
-    if (m_fp == NULL)
+    log_file.reset(new std::ofstream());
+    log_file->open(log_full_name, std::ios::app);
+    if (!log_file->is_open())
     {
         return false;
     }
@@ -95,18 +97,14 @@ void Log::write_log(int level, const char *format, ...)
         strcpy(s, "[info]:");
         break;
     }
-    // 写入一个log，对m_count++, m_split_lines最大行数
+
     m_mutex.lock();
     m_count++;
 
-    if (m_today != my_tm.tm_mday || m_count % m_split_lines == 0) // everyday log
+    if (m_today != my_tm.tm_mday || m_count % m_split_lines == 0)
     {
-
         char new_log[256] = {0};
-        fflush(m_fp);
-        fclose(m_fp);
         char tail[16] = {0};
-
         snprintf(tail, 16, "%d_%02d_%02d_", my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday);
 
         if (m_today != my_tm.tm_mday)
@@ -119,7 +117,8 @@ void Log::write_log(int level, const char *format, ...)
         {
             snprintf(new_log, 255, "%s%s%s.%lld", dir_name, tail, log_name, m_count / m_split_lines);
         }
-        m_fp = fopen(new_log, "a");
+        log_file->close();
+        log_file->open(new_log, std::ios::app);
     }
 
     m_mutex.unlock();
@@ -130,7 +129,6 @@ void Log::write_log(int level, const char *format, ...)
     string log_str;
     m_mutex.lock();
 
-    // 写入的具体时间内容格式
     int n = snprintf(m_buf, 48, "%d-%02d-%02d %02d:%02d:%02d.%06ld %s ",
                      my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday,
                      my_tm.tm_hour, my_tm.tm_min, my_tm.tm_sec, now.tv_usec, s);
@@ -149,7 +147,7 @@ void Log::write_log(int level, const char *format, ...)
     else
     {
         m_mutex.lock();
-        fputs(log_str.c_str(), m_fp);
+        *log_file << log_str;
         m_mutex.unlock();
     }
 
@@ -159,7 +157,6 @@ void Log::write_log(int level, const char *format, ...)
 void Log::flush(void)
 {
     m_mutex.lock();
-    // 强制刷新写入流缓冲区
-    fflush(m_fp);
+    log_file->flush();
     m_mutex.unlock();
 }
