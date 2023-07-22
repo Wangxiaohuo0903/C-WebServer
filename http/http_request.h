@@ -184,7 +184,7 @@ public:
         return response;
     }
 
-    static HttpResponse makeErrorResponse(int status_code, const std::string &error_message = "")
+    static HttpResponse makeErrorResponse(int status_code, const std::string error_message = "")
     {
         HttpResponse response;
         response.set_status_code(status_code);

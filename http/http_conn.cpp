@@ -92,12 +92,8 @@ void HttpConn::process()
         response = HttpResponse::makeOkResponse();
         write(m_sockfd, response.serialize().c_str(), strlen(response.serialize().c_str()));
     }
-    LOG_INFO("m_sockfd at return time");
-    // std::cout << "m_sockfd: " << m_sockfd << std::endl;
-    LOG_INFO("m_sockfd at return time : %d", m_sockfd);
     // const char *response1 = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\nHello, World!";
     // write(m_sockfd, response1, strlen(response1));
-    // std::cout << response.serialize().c_str() << std::endl;
     response.set_header("Connection", "close");
     write(m_sockfd, response.serialize().c_str(), response.serialize().length());
     usleep(1000);
@@ -131,6 +127,7 @@ void HttpConn::handleRegister(const HttpRequest &request, HttpResponse &response
     {
         // 如果获取连接失败，返回500 Internal Server Error
         response = HttpResponse::makeErrorResponse(500);
+        SqlConnectionPool::getInstance()->returnConnection(conn);
         return;
     }
     // 检查用户名是否已存在
@@ -144,12 +141,14 @@ void HttpConn::handleRegister(const HttpRequest &request, HttpResponse &response
         std::cerr << "SQL error: " << errmsg << std::endl;
         sqlite3_free(errmsg);
         response = HttpResponse::makeErrorResponse(500);
+        SqlConnectionPool::getInstance()->returnConnection(conn);
         return;
     }
     if (usernameExists)
     {
         // 用户名已存在，返回自定义的错误响应
         response = HttpResponse::makeOkResponse("Username already exists");
+        SqlConnectionPool::getInstance()->returnConnection(conn);
         return;
     }
 
@@ -176,6 +175,18 @@ void HttpConn::handleRegister(const HttpRequest &request, HttpResponse &response
     SqlConnectionPool::getInstance()->returnConnection(conn);
 }
 
+// 回调函数，如果被调用，说明查询结果至少有一行，也就是说用户名存在
+static int callback1(void *data, int argc, char **argv, char **azColName)
+{
+    std::string *passwordFromDB = (std::string *)data;
+    if (argv[0])
+    {
+        *passwordFromDB = argv[0];
+    }
+    // std::cout << "password " << *passwordFromDB << std::endl;
+    return 0;
+}
+
 void HttpConn::handleLogin(const HttpRequest &request, HttpResponse &response)
 {
     // 从HttpRequest中获取用户名和密码
@@ -184,33 +195,51 @@ void HttpConn::handleLogin(const HttpRequest &request, HttpResponse &response)
 
     // 在数据库中查询用户名和密码
     std::string sql = "SELECT password FROM users WHERE username='" + username + "'";
+    std::string passwordFromDB;
     char *errmsg;
-    char **result;
-    int nrow, ncolumn;
-    int rc = sqlite3_get_table(sql_pool->getConnection(), sql.c_str(), &result, &nrow, &ncolumn, &errmsg);
+    // 从数据库连接池中获取一个连接
+    sqlite3 *conn = SqlConnectionPool::getInstance()->getConnection();
+    if (conn == nullptr)
+    {
+        // 如果获取连接失败，返回500 Internal Server Error
+        response = HttpResponse::makeErrorResponse(500);
+        SqlConnectionPool::getInstance()->returnConnection(conn);
+        return;
+    }
+    int rc = sqlite3_exec(conn, sql.c_str(), callback1, &passwordFromDB, &errmsg);
     if (rc != SQLITE_OK)
     {
         // 查询失败，返回500错误
-        response.makeErrorResponse(500);
+        response = HttpResponse::makeErrorResponse(500);
+        std::cout << "500 " << std::endl;
+        SqlConnectionPool::getInstance()->returnConnection(conn);
         return;
     }
 
-    if (nrow == 0)
+    if (passwordFromDB.empty())
     {
         // 用户名不存在，返回403错误
-        response.makeErrorResponse(400);
+        LOG_INFO("500 Username does not exist")
+        response = HttpResponse::makeErrorResponse(403, "Username does not exist");
+        SqlConnectionPool::getInstance()->returnConnection(conn);
         return;
     }
 
     // 比较查询到的密码和用户提交的密码
-    if (password != result[1])
+    else if (password != passwordFromDB)
     {
         // 密码不正确，返回403错误
-        response.makeErrorResponse(400);
+        LOG_INFO("Password is incorrect");
+        // response.setStatusCode(200);
+        // response.setBody("Password is incorrect");
+        response = HttpResponse::makeErrorResponse(403, "Password is incorrect");
+        SqlConnectionPool::getInstance()->returnConnection(conn);
         return;
     }
 
     // 登录成功，返回200状态码和欢迎信息
-    response.setStatusCode(200);
-    response.setBody("Welcome, " + username + "!");
+    response = HttpResponse::makeOkResponse("Welcome, " + username + "!");
+    LOG_INFO("Success Login");
+    // 将连接返回到数据库连接池
+    SqlConnectionPool::getInstance()->returnConnection(conn);
 }

@@ -33,3 +33,30 @@
 2023-07-22 11:14:01.644288 [info]: m_sockfd at return time
 2023-07-22 11:14:01.644297 [info]: m_sockfd at return time : 7
 2023-07-22 11:14:05.432417 [info]: start register
+2023-07-22 16:24:25.240503 [info]: start register
+2023-07-22 16:24:25.244711 [info]: m_sockfd at return time
+2023-07-22 16:24:25.244848 [info]: m_sockfd at return time : 7
+2023-07-22 16:36:59.347706 [info]: start login
+2023-07-22 16:36:59.349867 [info]: m_sockfd at return time
+2023-07-22 16:36:59.349901 [info]: m_sockfd at return time : 7
+2023-07-22 16:37:07.615184 [info]: start login
+2023-07-22 16:39:28.057484 [info]: start login
+2023-07-22 16:39:28.059659 [info]: Password is incorrect
+2023-07-22 16:39:28.059692 [info]: m_sockfd at return time
+2023-07-22 16:39:28.059701 [info]: m_sockfd at return time : 7
+2023-07-22 16:39:37.195727 [info]: start register
+2023-07-22 16:40:31.343030 [info]: start login
+2023-07-22 16:48:38.563386 [info]: start login
+2023-07-22 16:48:38.565505 [info]: Password is incorrect
+2023-07-22 16:48:38.565547 [info]: m_sockfd at return time
+2023-07-22 16:48:38.565550 [info]: m_sockfd at return time : 7
+2023-07-22 16:48:49.909150 [info]: start login
+2023-07-22 16:48:49.909430 [info]: Password is incorrect
+2023-07-22 16:58:46.769177 [info]: start login
+2023-07-22 16:58:46.771115 [info]: Password is incorrect
+2023-07-22 16:59:01.604247 [info]: start login
+2023-07-22 17:00:01.037753 [info]: start login
+2023-07-22 17:03:36.287138 [info]: start login
+2023-07-22 17:03:36.288994 [info]: Password is incorrect
+2023-07-22 17:03:44.481269 [info]: start login
+2023-07-22 17:07:20.981776 [info]: start login

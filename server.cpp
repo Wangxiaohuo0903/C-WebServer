@@ -34,8 +34,8 @@ void WebServer::event_listen()
         perror("socket failed");
         return;
     }
-    std::cout << "m_listenfd: " << m_listenfd << std::endl;
-    // 设置服务器地址
+    // std::cout << "m_listenfd: " << m_listenfd << std::endl;
+    //  设置服务器地址
     struct sockaddr_in server_addr;
     bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
@@ -97,7 +97,7 @@ void WebServer::event_loop()
             else
             {
                 // 已有的连接
-                std::cout << "events[i].ident: " << events[i].ident << std::endl;
+                // std::cout << "events[i].ident: " << events[i].ident << std::endl;
                 HttpConn *conn = new HttpConn;
                 conn->init(events[i].ident);
                 m_thread_pool->enqueue([conn]
