@@ -2,7 +2,7 @@
 int main()
 {
     WebServer server;
-    server.init(4, 0);
+    server.init(16, 0);
     server.log_init();
     server.thread_pool_init();
     server.event_listen();

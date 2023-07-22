@@ -73,7 +73,6 @@ void WebServer::event_loop()
     struct kevent events[10];
     while (true)
     {
-
         int nevents = kevent(kq, NULL, 0, events, 10, NULL);
 
         for (int i = 0; i < nevents; i++)
@@ -97,11 +96,12 @@ void WebServer::event_loop()
             else
             {
                 // 已有的连接
-                // std::cout << "events[i].ident: " << events[i].ident << std::endl;
-                HttpConn *conn = new HttpConn;
+                HttpConn *conn = HttpConnPool::getInstance()->acquire();
                 conn->init(events[i].ident);
                 m_thread_pool->enqueue([conn]
-                                       { conn->process(); delete conn; });
+                                       {
+                    conn->process();
+                    HttpConnPool::getInstance()->release(conn); });
             }
         }
     }

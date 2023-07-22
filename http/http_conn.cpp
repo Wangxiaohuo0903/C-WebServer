@@ -61,12 +61,8 @@ void HttpConn::process()
         return;
     }
 
-    // 解析请求（这里我们只处理GET请求）
-    // if (strncmp(m_read_buf, "GET", 3) != 0)
     if (!request.parse(m_read_buf))
     {
-        // 不是GET请求，返回400 Bad Request
-        std::cout << "400 BAD " << std::endl;
         response = HttpResponse::makeErrorResponse(400);
     }
 
@@ -104,7 +100,7 @@ void HttpConn::process()
         // just read until the client closes the connectiçon
     }
     // 关闭连接
-    close(m_sockfd);
+    // close(m_sockfd);
 }
 
 // 回调函数，如果被调用，说明查询结果至少有一行，也就是说用户名已经存在

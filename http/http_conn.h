@@ -6,6 +6,9 @@
 #include "http_request.h"
 #include "../sql/sql_pool.h"
 
+#include <list>
+#include <mutex>
+
 class HttpConn
 {
 public:
@@ -23,6 +26,45 @@ private:
     Log *m_logger;
     int m_close_log = 0;         // 是否开启日志
     SqlConnectionPool *sql_pool; //
+};
+
+class HttpConnPool
+{
+public:
+    // 获取单例对象池实例
+    static HttpConnPool *getInstance()
+    {
+        static HttpConnPool instance;
+        return &instance;
+    }
+
+    // 从对象池中获取一个对象
+    HttpConn *acquire()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_pool.empty())
+        {
+            return new HttpConn();
+        }
+        else
+        {
+            HttpConn *conn = m_pool.front();
+            m_pool.pop_front();
+            return conn;
+        }
+    }
+
+    // 将对象归还给对象池
+    void release(HttpConn *conn)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_pool.push_back(conn);
+    }
+
+private:
+    HttpConnPool() {}
+    std::list<HttpConn *> m_pool;
+    std::mutex m_mutex;
 };
 
 #endif // HTTP_CONN_H
