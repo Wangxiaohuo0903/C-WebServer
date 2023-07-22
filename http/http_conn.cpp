@@ -1,5 +1,7 @@
 #pragma once
-
+#include <thread>
+#include <chrono>
+#include <sys/socket.h>
 #include "http_conn.h"
 enum HTTP_CODE
 {
@@ -71,6 +73,7 @@ void HttpConn::process()
     else if (request.method == HttpRequest::Method::GET)
     {
         LOG_INFO("return GET");
+
         response = HttpResponse::makeOkResponse();
     }
     LOG_INFO("m_sockfd at return time");
@@ -79,8 +82,15 @@ void HttpConn::process()
     // const char *response1 = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\nHello, World!";
     // write(m_sockfd, response1, strlen(response1));
     std::cout << response.serialize().c_str() << std::endl;
+    response.set_header("Connection", "close");
     write(m_sockfd, response.serialize().c_str(), response.serialize().length());
-    std::cout << "END" << std::endl;
+    usleep(1000);
+    shutdown(m_sockfd, SHUT_WR);
+    char buffer[1024];
+    while (read(m_sockfd, buffer, sizeof(buffer)) > 0)
+    {
+        // just read until the client closes the connection
+    }
     // 关闭连接
     close(m_sockfd);
 }

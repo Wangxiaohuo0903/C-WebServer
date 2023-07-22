@@ -44,7 +44,7 @@ void WebServer::event_listen()
 
     // 绑定服务器套接字
     int flag = 1;
-    // setsockopt(m_listenfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
+    setsockopt(m_listenfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
     if (::bind(m_listenfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
         perror("bind failed");
@@ -97,6 +97,7 @@ void WebServer::event_loop()
             else
             {
                 // 已有的连接
+                std::cout << "events[i].ident: " << events[i].ident << std::endl;
                 HttpConn *conn = new HttpConn;
                 conn->init(events[i].ident);
                 m_thread_pool->enqueue([conn]

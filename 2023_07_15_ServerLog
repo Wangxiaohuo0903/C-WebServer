@@ -19,3 +19,21 @@
 2023-07-15 21:24:56.905209 [info]: start register
 2023-07-15 21:28:18.577860 [info]: start register
 2023-07-15 21:29:30.175199 [info]: start register
+2023-07-15 21:41:52.914079 [info]: return GET
+2023-07-15 21:41:52.914090 [info]: m_sockfd at return time
+2023-07-15 21:50:11.988397 [info]: return GET
+2023-07-15 21:50:11.988418 [info]: m_sockfd at return time
+2023-07-15 21:53:07.042306 [info]: return GET
+2023-07-15 21:53:07.042340 [info]: m_sockfd at return time
+2023-07-15 21:53:08.044952 [info]: return GET
+2023-07-15 21:53:08.045166 [info]: m_sockfd at return time
+2023-07-15 21:53:10.053356 [info]: return GET
+2023-07-15 21:53:10.053483 [info]: m_sockfd at return time
+2023-07-15 21:53:13.057699 [info]: return GET
+2023-07-15 21:53:13.057787 [info]: m_sockfd at return time
+2023-07-15 21:53:17.065020 [info]: return GET
+2023-07-15 21:53:17.065283 [info]: m_sockfd at return time
+2023-07-15 21:53:22.074831 [info]: return GET
+2023-07-15 21:53:22.075021 [info]: m_sockfd at return time
+2023-07-15 21:53:28.077685 [info]: return GET
+2023-07-15 21:53:28.077749 [info]: m_sockfd at return time
