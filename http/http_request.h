@@ -59,6 +59,7 @@ public:
         }
         else if (method == "POST")
         {
+            this->body = text.substr(text.find("\r\n\r\n") + 4);
             this->method = POST;
         }
         else
@@ -94,26 +95,49 @@ public:
 
     std::string getParam(const std::string &name) const
     {
-        size_t param_start = path.find("?");
-        if (param_start == std::string::npos)
+        if (method == GET)
         {
-            return "";
-        }
-        std::string query_string = path.substr(param_start + 1);
-        std::istringstream iss(query_string);
-        std::string token;
-        while (std::getline(iss, token, '&'))
-        {
-            size_t equal_sign = token.find("=");
-            if (equal_sign == std::string::npos)
+            size_t param_start = path.find("?");
+            if (param_start == std::string::npos)
             {
-                continue;
+                return "";
             }
-            std::string key = token.substr(0, equal_sign);
-            std::string value = token.substr(equal_sign + 1);
-            if (key == name)
+            std::string query_string = path.substr(param_start + 1);
+            std::istringstream iss(query_string);
+            std::string token;
+            while (std::getline(iss, token, '&'))
             {
-                return value;
+                size_t equal_sign = token.find("=");
+                if (equal_sign == std::string::npos)
+                {
+                    continue;
+                }
+                std::string key = token.substr(0, equal_sign);
+                std::string value = token.substr(equal_sign + 1);
+                if (key == name)
+                {
+                    return value;
+                }
+            }
+        }
+        else if (method == POST)
+        {
+            // 提取POST请求的参数
+            std::istringstream iss(body);
+            std::string token;
+            while (std::getline(iss, token, '&'))
+            {
+                size_t equal_sign = token.find("=");
+                if (equal_sign == std::string::npos)
+                {
+                    continue;
+                }
+                std::string key = token.substr(0, equal_sign);
+                std::string value = token.substr(equal_sign + 1);
+                if (key == name)
+                {
+                    return value;
+                }
             }
         }
         return "";
@@ -126,6 +150,7 @@ public:
 
 private:
     ParseState parseState;
+    std::string body;
 };
 
 class HttpResponse

@@ -40,9 +40,23 @@ void HttpConn::process()
     // 读取请求
     HttpResponse response;
     int n = read(m_sockfd, m_read_buf, READ_BUFFER_SIZE - 1);
-    if (n <= 0)
+    if (n < 0)
     {
-        // 出错或连接关闭
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+        {
+            // Resource temporarily unavailable, try again later
+            return;
+        }
+        else
+        {
+            perror("Error in read()");
+            close(m_sockfd);
+            return;
+        }
+    }
+    else if (n == 0)
+    {
+        // Connection closed by client
         close(m_sockfd);
         return;
     }
@@ -52,6 +66,7 @@ void HttpConn::process()
     if (!request.parse(m_read_buf))
     {
         // 不是GET请求，返回400 Bad Request
+        std::cout << "400 BAD " << std::endl;
         response = HttpResponse::makeErrorResponse(400);
     }
 
@@ -75,13 +90,14 @@ void HttpConn::process()
         LOG_INFO("return GET");
 
         response = HttpResponse::makeOkResponse();
+        write(m_sockfd, response.serialize().c_str(), strlen(response.serialize().c_str()));
     }
     LOG_INFO("m_sockfd at return time");
-    std::cout << "m_sockfd: " << m_sockfd << std::endl;
-    // LOG_INFO("m_sockfd at return time : %d", m_sockfd);
+    // std::cout << "m_sockfd: " << m_sockfd << std::endl;
+    LOG_INFO("m_sockfd at return time : %d", m_sockfd);
     // const char *response1 = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\nHello, World!";
     // write(m_sockfd, response1, strlen(response1));
-    std::cout << response.serialize().c_str() << std::endl;
+    // std::cout << response.serialize().c_str() << std::endl;
     response.set_header("Connection", "close");
     write(m_sockfd, response.serialize().c_str(), response.serialize().length());
     usleep(1000);
@@ -89,10 +105,18 @@ void HttpConn::process()
     char buffer[1024];
     while (read(m_sockfd, buffer, sizeof(buffer)) > 0)
     {
-        // just read until the client closes the connection
+        // just read until the client closes the connectiçon
     }
     // 关闭连接
     close(m_sockfd);
+}
+
+// 回调函数，如果被调用，说明查询结果至少有一行，也就是说用户名已经存在
+static int callback(void *data, int argc, char **argv, char **azColName)
+{
+    int *usernameExists = (int *)data;
+    *usernameExists = 1;
+    return 0;
 }
 
 void HttpConn::handleRegister(const HttpRequest &request, HttpResponse &response)
@@ -111,39 +135,44 @@ void HttpConn::handleRegister(const HttpRequest &request, HttpResponse &response
     }
     // 检查用户名是否已存在
     std::string checkUsernameSQL = "SELECT username FROM users WHERE username = '" + username + "'";
-    int result = sqlite3_exec(conn, checkUsernameSQL.c_str(), nullptr, nullptr, nullptr);
-    if (result != SQLITE_ROW)
+    int usernameExists = 0;
+    char *errmsg;
+    int result = sqlite3_exec(conn, checkUsernameSQL.c_str(), callback, &usernameExists, &errmsg);
+    if (result != SQLITE_OK)
+    {
+        // 查询失败，打印错误信息并返回500 Internal Server Error
+        std::cerr << "SQL error: " << errmsg << std::endl;
+        sqlite3_free(errmsg);
+        response = HttpResponse::makeErrorResponse(500);
+        return;
+    }
+    if (usernameExists)
     {
         // 用户名已存在，返回自定义的错误响应
-
         response = HttpResponse::makeOkResponse("Username already exists");
+        return;
+    }
+
+    // 构造SQL查询
+    std::string sql = "INSERT INTO users (username, password) VALUES ('" + username + "', '" + password + "')";
+
+    // 执行SQL查询
+    if (sqlite3_exec(conn, sql.c_str(), nullptr, nullptr, &errmsg) != SQLITE_OK)
+    {
+        // 如果查询失败，返回500 Internal Server Error，并打印错误信息
+        std::cerr << "SQLL error: " << errmsg << std::endl;
+        sqlite3_free(errmsg);
+        response = HttpResponse::makeErrorResponse(500);
     }
     else
     {
-
-        // 构造SQL查询
-        std::string sql = "INSERT INTO users (username, password) VALUES ('" + username + "', '" + password + "')";
-
-        // 执行SQL查询
-        char *errmsg;
-        if (sqlite3_exec(conn, sql.c_str(), nullptr, nullptr, &errmsg) != SQLITE_OK)
-        {
-            // 如果查询失败，返回500 Internal Server Error，并打印错误信息
-            std::cerr << "SQLL error: " << errmsg << std::endl;
-            sqlite3_free(errmsg);
-            response = HttpResponse::makeErrorResponse(500);
-        }
-        else
-        {
-            std::cout << "success register" << std::endl;
-            // 如果查询成功，返回200 OK
-            LOG_INFO("success register");
-            response = HttpResponse::makeOkResponse("success register");
-        }
+        std::cout << "success register" << std::endl;
+        // 如果查询成功，返回200 OK
+        LOG_INFO("success register");
+        response = HttpResponse::makeOkResponse("success register");
     }
 
     // 将连接返回到数据库连接池
-
     SqlConnectionPool::getInstance()->returnConnection(conn);
 }
 

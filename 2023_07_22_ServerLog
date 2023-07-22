@@ -2,3 +2,34 @@
 2023-07-22 10:00:35.208639 [info]: return GET
 2023-07-22 10:00:35.208649 [info]: m_sockfd at return time
 2023-07-22 10:01:04.090883 [info]: start register
+2023-07-22 10:23:35.001506 [info]: m_sockfd at return time
+2023-07-22 10:23:35.001513 [info]: m_sockfd at return time
+2023-07-22 10:23:35.001518 [info]: m_sockfd at return time
+2023-07-22 10:23:35.001506 [info]: m_sockfd at return time
+2023-07-22 10:23:35.001571 [info]: m_sockfd at return time : 7
+2023-07-22 10:23:35.001584 [info]: m_sockfd at return time : 7
+2023-07-22 10:23:35.001591 [info]: m_sockfd at return time
+2023-07-22 10:23:35.001610 [info]: m_sockfd at return time : 7
+2023-07-22 10:23:35.001597 [info]: m_sockfd at return time : 7
+2023-07-22 10:23:35.001653 [info]: m_sockfd at return time
+2023-07-22 10:23:35.001667 [info]: m_sockfd at return time : 7
+2023-07-22 10:23:35.001670 [info]: m_sockfd at return time
+2023-07-22 10:23:35.001675 [info]: m_sockfd at return time
+2023-07-22 10:23:35.001671 [info]: m_sockfd at return time : 7
+2023-07-22 10:23:35.001712 [info]: m_sockfd at return time : 7
+2023-07-22 10:23:35.001730 [info]: m_sockfd at return time
+2023-07-22 10:23:35.001735 [info]: m_sockfd at return time : 7
+2023-07-22 10:41:34.889118 [info]: return GET
+2023-07-22 10:45:04.354962 [info]: return GET
+2023-07-22 10:50:48.962453 [info]: return GET
+2023-07-22 11:02:01.464857 [info]: start register
+2023-07-22 11:04:08.056704 [info]: start register
+2023-07-22 11:08:53.084229 [info]: start register
+2023-07-22 11:08:53.087502 [info]: m_sockfd at return time
+2023-07-22 11:08:53.087532 [info]: m_sockfd at return time : 7
+2023-07-22 11:09:06.595439 [info]: start register
+2023-07-22 11:14:01.641227 [info]: start register
+2023-07-22 11:14:01.644260 [info]: success register
+2023-07-22 11:14:01.644288 [info]: m_sockfd at return time
+2023-07-22 11:14:01.644297 [info]: m_sockfd at return time : 7
+2023-07-22 11:14:05.432417 [info]: start register
