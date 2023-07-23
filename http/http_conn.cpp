@@ -35,17 +35,13 @@ void HttpConn::init(int sockfd)
     memset(m_read_buf, 0, READ_BUFFER_SIZE);
 }
 
-void HttpConn::process()
+void HttpConn::readData()
 {
-
-    // std::cout << "start process" << std::endl;
-    //
     if (m_sockfd == -1)
     {
         return;
     }
-    // 读取请求
-    HttpResponse response;
+
     int n = read(m_sockfd, m_read_buf, READ_BUFFER_SIZE - 1);
     if (n < 0)
     {
@@ -69,6 +65,45 @@ void HttpConn::process()
         m_sockfd = -1;
         return;
     }
+}
+
+void HttpConn::process()
+{
+    if (m_sockfd == -1)
+    {
+        return;
+    }
+
+    HttpResponse response;
+
+    // 在 Proactor 模式中，数据的读取应该在任务被添加到队列之前完成
+    // 所以在 process 方法中不应该再次读取数据
+    if (m_mode == REACTOR)
+    {
+        int n = read(m_sockfd, m_read_buf, READ_BUFFER_SIZE - 1);
+        if (n < 0)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+            {
+                // Resource temporarily unavailable, try again later
+                return;
+            }
+            else
+            {
+                perror("Error in read()");
+                close(m_sockfd);
+                m_sockfd = -1;
+                return;
+            }
+        }
+        else if (n == 0)
+        {
+            // Connection closed by client
+            close(m_sockfd);
+            m_sockfd = -1;
+            return;
+        }
+    }
 
     if (!request.parse(m_read_buf))
     {
@@ -80,25 +115,21 @@ void HttpConn::process()
     {
         if (request.path == "/register")
         {
-            LOG_INFO("start register");
+            // LOG_INFO("start register");
             handleRegister(request, response);
         }
-
         else if (request.path == "/login")
         {
-            LOG_INFO("start login");
+            // LOG_INFO("start login");
             handleLogin(request, response);
         }
     }
     else if (request.method == HttpRequest::Method::GET)
     {
-        LOG_INFO("return GET");
-
+        // LOG_INFO("return GET");
         response = HttpResponse::makeOkResponse();
-        write(m_sockfd, response.serialize().c_str(), strlen(response.serialize().c_str()));
     }
-    // const char *response1 = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\nHello, World!";
-    // write(m_sockfd, response1, strlen(response1));
+
     response.set_header("Connection", "close");
     ssize_t written = write(m_sockfd, response.serialize().c_str(), response.serialize().length());
     if (written < 0)
@@ -109,18 +140,21 @@ void HttpConn::process()
         return;
     }
 
-    // char buffer[1024];
-    // if (m_sockfd != -1)
-    // {
-    //     while (read(m_sockfd, buffer, sizeof(buffer)) > 0)
-    //     {
-    //         // just read until the client closes the connectiçon
-    //     }
-    // }
-    // shutdown(m_sockfd, SHUT_WR);
-    // 关闭连接
-    close(m_sockfd);
-    m_sockfd = -1;
+    // 在 Proactor 模式中，数据的读取应该在任务被添加到队列之前完成
+    // 所以在 process 方法中不应该再次读取数据
+    if (m_mode == REACTOR)
+    {
+        char buffer[1024];
+        if (m_sockfd != -1)
+        {
+            while (read(m_sockfd, buffer, sizeof(buffer)) > 0)
+            {
+                // just read until the client closes the connectiçon
+            }
+        }
+    }
+
+    shutdown(m_sockfd, SHUT_WR);
 }
 
 // 回调函数，如果被调用，说明查询结果至少有一行，也就是说用户名已经存在

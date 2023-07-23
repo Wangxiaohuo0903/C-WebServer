@@ -8,7 +8,11 @@
 
 #include <list>
 #include <mutex>
-
+enum Mode
+{
+    REACTOR,
+    PROACTOR
+};
 class HttpConn
 {
 public:
@@ -17,6 +21,8 @@ public:
     void process();
     void handleRegister(const HttpRequest &request, HttpResponse &response);
     void handleLogin(const HttpRequest &request, HttpResponse &response);
+    void readData();
+    void setMode(Mode mode) { m_mode = mode; }
 
 private:
     HttpRequest request;
@@ -26,6 +32,7 @@ private:
     Log *m_logger;
     int m_close_log = 0;         // 是否开启日志
     SqlConnectionPool *sql_pool; //
+    Mode m_mode;
 };
 
 class HttpConnPool

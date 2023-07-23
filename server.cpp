@@ -41,7 +41,7 @@ void WebServer::event_listen()
     struct sockaddr_in server_addr;
     bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(12345);
+    server_addr.sin_port = htons(12346);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     // 绑定服务器套接字
@@ -100,14 +100,18 @@ void WebServer::event_loop()
                 // 已有的连接
                 HttpConn *conn = HttpConnPool::getInstance()->acquire();
                 conn->init(events[i].ident);
+                conn->setMode(m_mode);
 
-                if (m_mode == REACTOR)
+                // 在 Proactor 模式中，数据的读取应该在任务被添加到队列之前完成
+                // 所以在这里我们需要先读取数据，然后再添加任务到队列
+                if (m_mode == PROACTOR)
                 {
+                    conn->readData();
                     m_thread_pool->append(conn);
                 }
-                else if (m_mode == PROACTOR)
+                else if (m_mode == REACTOR)
                 {
-                    m_thread_pool->append_p(conn);
+                    m_thread_pool->append(conn);
                 }
             }
         }

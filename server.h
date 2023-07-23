@@ -9,12 +9,6 @@
 #include <fcntl.h>
 #include "log/log.h"
 
-enum Mode
-{
-    REACTOR,
-    PROACTOR
-};
-
 class WebServer
 {
 public:
