@@ -112,20 +112,6 @@ public:
         return true;
     }
 
-    // Proactor 模式：将一个请求添加到队列
-    bool append_p(T *request)
-    {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        if (m_tasks.size() >= m_maxThreads)
-        {
-            return false;
-        }
-        // 将请求加入队列中
-        m_tasks.push_back(request);
-        m_condition.notify_one();
-        return true;
-    }
-
 private:
     // 工作线程的函数，用于处理队列中的任务
     void workerThread()
