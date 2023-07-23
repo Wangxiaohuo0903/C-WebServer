@@ -1,27 +1,29 @@
 #pragma once
 #include "server.h"
 
-WebServer::WebServer() : m_thread_num(0), m_listenfd(-1), m_thread_pool(nullptr) {}
+WebServer::WebServer() : m_thread_min_num(4), m_thread_max_num(1000), m_listenfd(-1), m_thread_pool(nullptr) {}
 
 WebServer::~WebServer()
 {
     close(m_listenfd);
     delete m_thread_pool;
 }
-void WebServer::init(int thread_num, int close_log)
+void WebServer::init(int thread_num, int mode, int close_log)
 {
-    m_thread_num = thread_num;
+    m_thread_min_num = 4;
+    m_thread_max_num = thread_num;
+    m_mode = static_cast<Mode>(mode);
     m_close_log = close_log;
+}
+
+void WebServer::thread_pool_init()
+{
+    m_thread_pool = new ThreadPool<HttpConn>(m_thread_min_num, m_thread_max_num);
 }
 
 void WebServer::log_init()
 {
     Log::get_instance()->init("./ServerLog", m_close_log, 2000, 800000, 800);
-}
-
-void WebServer::thread_pool_init()
-{
-    m_thread_pool = new ThreadPool(m_thread_num);
 }
 
 void WebServer::event_listen()
@@ -39,7 +41,7 @@ void WebServer::event_listen()
     struct sockaddr_in server_addr;
     bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(12347);
+    server_addr.sin_port = htons(12345);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     // 绑定服务器套接字
@@ -98,10 +100,15 @@ void WebServer::event_loop()
                 // 已有的连接
                 HttpConn *conn = HttpConnPool::getInstance()->acquire();
                 conn->init(events[i].ident);
-                m_thread_pool->enqueue([conn]
-                                       {
-                    conn->process();
-                    HttpConnPool::getInstance()->release(conn); });
+
+                if (m_mode == REACTOR)
+                {
+                    m_thread_pool->append(conn);
+                }
+                else if (m_mode == PROACTOR)
+                {
+                    m_thread_pool->append_p(conn);
+                }
             }
         }
     }

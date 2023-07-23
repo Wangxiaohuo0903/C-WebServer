@@ -66,61 +66,83 @@ private:
     std::atomic<bool> m_stopped;
 };
 
+template <typename T>
 class ThreadPool
 {
 public:
-    ThreadPool(size_t threads) : workers(threads)
+    ThreadPool(size_t minThreads, size_t maxThreads)
+        : m_minThreads(minThreads), m_maxThreads(maxThreads), m_stop(false)
     {
-        for (auto &worker : workers)
+        for (size_t i = 0; i < m_minThreads; ++i)
         {
-            worker = std::thread([this]
-                                 { this->worker(); });
+            m_workers.emplace_back(std::thread(&ThreadPool::workerThread, this));
         }
     }
+
     ~ThreadPool()
     {
-        tasks.stop();
-        for (auto &worker : workers)
         {
-            if (worker.joinable())
-            {
-                worker.join();
-            }
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_stop = true;
         }
+        m_condition.notify_all();
+        for (std::thread &worker : m_workers)
+            worker.join();
     }
 
-    template <class F, class... Args>
-    auto enqueue(F &&f, Args &&...args) -> std::future<typename std::result_of<F(Args...)>::type>
+    // reactor模式下的请求入队
+    bool append(T *request)
     {
-        using return_type = typename std::result_of<F(Args...)>::type;
+        std::unique_lock<std::mutex> lock(m_mutex);
+        if (m_tasks.size() >= m_maxThreads)
+        {
+            return false;
+        }
+        // 读写事件
+        // request->m_state = state;
+        m_tasks.push_back(request);
+        m_condition.notify_one();
+        return true;
+    }
 
-        auto task = std::make_shared<std::packaged_task<return_type()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
-
-        std::future<return_type> res = task->get_future();
-        tasks.push([task]()
-                   { (*task)(); });
-
-        return res;
+    // proactor模式下的请求入队
+    bool append_p(T *request)
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        if (m_tasks.size() >= m_maxThreads)
+        {
+            return false;
+        }
+        m_tasks.push_back(request);
+        m_condition.notify_one();
+        return true;
     }
 
 private:
-    // 线程池
-    std::vector<std::thread> workers;
-    // 任务队列
-    ConcurrentQueue<std::function<void()>> tasks;
-
-    void worker()
+    void workerThread()
     {
         while (true)
         {
-            std::function<void()> task;
-            if (!tasks.pop(task))
+            T *task;
             {
-                break;
+                std::unique_lock<std::mutex> lock(m_mutex);
+                m_condition.wait(lock, [this]
+                                 { return this->m_stop || !this->m_tasks.empty(); });
+                if (this->m_stop && this->m_tasks.empty())
+                    return;
+                task = m_tasks.front();
+                m_tasks.pop_front();
             }
-            task();
+            task->process();
         }
     }
-};
 
+    std::list<T *> m_tasks;
+    std::list<std::thread> m_workers;
+    std::mutex m_mutex;
+    std::condition_variable m_condition;
+    bool m_stop;
+    size_t m_minThreads;
+    size_t m_maxThreads;
+};
 #endif

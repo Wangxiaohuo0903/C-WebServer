@@ -37,6 +37,13 @@ void HttpConn::init(int sockfd)
 
 void HttpConn::process()
 {
+
+    // std::cout << "start process" << std::endl;
+    //
+    if (m_sockfd == -1)
+    {
+        return;
+    }
     // 读取请求
     HttpResponse response;
     int n = read(m_sockfd, m_read_buf, READ_BUFFER_SIZE - 1);
@@ -51,6 +58,7 @@ void HttpConn::process()
         {
             perror("Error in read()");
             close(m_sockfd);
+            m_sockfd = -1;
             return;
         }
     }
@@ -58,6 +66,7 @@ void HttpConn::process()
     {
         // Connection closed by client
         close(m_sockfd);
+        m_sockfd = -1;
         return;
     }
 
@@ -91,16 +100,27 @@ void HttpConn::process()
     // const char *response1 = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\nHello, World!";
     // write(m_sockfd, response1, strlen(response1));
     response.set_header("Connection", "close");
-    write(m_sockfd, response.serialize().c_str(), response.serialize().length());
-    usleep(1000);
-    shutdown(m_sockfd, SHUT_WR);
-    char buffer[1024];
-    while (read(m_sockfd, buffer, sizeof(buffer)) > 0)
+    ssize_t written = write(m_sockfd, response.serialize().c_str(), response.serialize().length());
+    if (written < 0)
     {
-        // just read until the client closes the connectiçon
+        perror("Error in write()");
+        close(m_sockfd);
+        m_sockfd = -1;
+        return;
     }
+
+    // char buffer[1024];
+    // if (m_sockfd != -1)
+    // {
+    //     while (read(m_sockfd, buffer, sizeof(buffer)) > 0)
+    //     {
+    //         // just read until the client closes the connectiçon
+    //     }
+    // }
+    // shutdown(m_sockfd, SHUT_WR);
     // 关闭连接
-    // close(m_sockfd);
+    close(m_sockfd);
+    m_sockfd = -1;
 }
 
 // 回调函数，如果被调用，说明查询结果至少有一行，也就是说用户名已经存在

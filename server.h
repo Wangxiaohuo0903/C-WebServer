@@ -1,3 +1,4 @@
+#pragma once
 #include "http/http_conn.h"
 #include "threadpool.h"
 #include <netinet/in.h>
@@ -6,16 +7,20 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <fcntl.h>
-#pragma once
-#include <sys/socket.h>
-#include <fcntl.h>
 #include "log/log.h"
+
+enum Mode
+{
+    REACTOR,
+    PROACTOR
+};
+
 class WebServer
 {
 public:
     WebServer();
     ~WebServer();
-    void init(int thread_num, int close_log);
+    void init(int thread_num, int mode, int close_log);
     void thread_pool_init();
     void sql_pool();
     void log_init();
@@ -23,8 +28,10 @@ public:
     void event_loop();
 
 public:
-    int m_thread_num;
+    int m_thread_min_num;
+    int m_thread_max_num;
     int m_listenfd;
     int m_close_log;
-    ThreadPool *m_thread_pool;
+    Mode m_mode;
+    ThreadPool<HttpConn> *m_thread_pool;
 };
