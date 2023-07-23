@@ -35,6 +35,24 @@ make
 
 现在，服务器已经在本地运行，你可以通过浏览器或其他HTTP客户端来访问。
 
+```
+ webbench -t 5 -c 5 http://localhost:12346/
+Webbench - Simple Web Benchmark 1.5
+Copyright (c) Radim Kolar 1997-2004, GPL Open Source Software.
+
+Request:
+GET / HTTP/1.0
+User-Agent: WebBench 1.5
+Host: localhost
+
+
+Runing info: 5 clients, running 5 sec.
+
+Speed=195480 pages/min, 234576 bytes/sec.
+Requests: 16290 susceed, 0 failed.
+
+```
 ## 未来工作
 
 虽然C-WebServer已经实现了基本的功能，但还有许多可以改进和扩展的地方。例如，可以添加更多的HTTP方法支持，如PUT、DELETE等；可以增加对HTTPS的支持；可以增加对更复杂的HTTP请求的处理，如文件上传、Cookie和Session的处理等。
+
