@@ -22,8 +22,8 @@ public:
     void event_loop();
 
 public:
-    int m_thread_min_num;
-    int m_thread_max_num;
+    int m_thread_num;
+    int m_requests_num;
     int m_listenfd;
     int m_close_log;
     Mode m_mode;

@@ -77,7 +77,7 @@ class ThreadPool
 {
 public:
     ThreadPool(size_t minThreads, size_t maxThreads)
-        : m_minThreads(minThreads), m_maxThreads(maxThreads), m_stop(false)
+        : m_minThreads(minThreads), m_max_requests(maxThreads)
     {
         for (size_t i = 0; i < m_minThreads; ++i)
         {
@@ -88,26 +88,15 @@ public:
 
     ~ThreadPool()
     {
-        {
-            std::unique_lock<std::mutex> lock(m_mutex);
-            m_stop = true;
-        }
-        m_condition.notify_all();
+        m_tasks.stop();
         // 等待所有工作线程退出
         for (std::thread &worker : m_workers)
             worker.join();
     }
 
-    // Reactor 模式：将一个请求添加到队列
     bool append(T *request)
     {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        if (m_tasks.size() >= m_maxThreads)
-        {
-            return false;
-        }
-        // 将请求加入队列中
-        m_tasks.push_back(request);
+        m_tasks.push(request);
         m_condition.notify_one();
         return true;
     }
@@ -119,26 +108,25 @@ private:
         while (true)
         {
             T *task;
+
             {
                 std::unique_lock<std::mutex> lock(m_mutex);
                 m_condition.wait(lock, [this]
-                                 { return this->m_stop || !this->m_tasks.empty(); });
-                if (this->m_stop && this->m_tasks.empty())
+                                 { return !m_tasks.empty(); });
+                if (!m_tasks.pop(task))
                     return;
-                task = m_tasks.front();
-                m_tasks.pop_front();
             }
             // 处理任务
             task->process();
         }
     }
 
-    std::list<T *> m_tasks;           // 使用 list 维护任务队列，以保持任务的顺序
     std::list<std::thread> m_workers; // 使用 list 维护工作线程的顺序
+    ConcurrentQueue<T *> m_tasks;
     std::mutex m_mutex;
     std::condition_variable m_condition;
-    bool m_stop;
     size_t m_minThreads;
-    size_t m_maxThreads;
+    size_t m_max_requests;
 };
+
 #endif

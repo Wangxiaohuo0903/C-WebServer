@@ -1,24 +1,24 @@
 #pragma once
 #include "server.h"
 
-WebServer::WebServer() : m_thread_min_num(4), m_thread_max_num(1000), m_listenfd(-1), m_thread_pool(nullptr) {}
+WebServer::WebServer() : m_thread_num(4), m_requests_num(1000), m_listenfd(-1), m_thread_pool(nullptr) {}
 
 WebServer::~WebServer()
 {
     close(m_listenfd);
     delete m_thread_pool;
 }
-void WebServer::init(int thread_num, int mode, int close_log)
+void WebServer::init(int max_requests, int mode, int close_log)
 {
-    m_thread_min_num = 4;
-    m_thread_max_num = thread_num;
+    m_thread_num = 16;
+    m_requests_num = max_requests;
     m_mode = static_cast<Mode>(mode);
     m_close_log = close_log;
 }
 
 void WebServer::thread_pool_init()
 {
-    m_thread_pool = new ThreadPool<HttpConn>(m_thread_min_num, m_thread_max_num);
+    m_thread_pool = new ThreadPool<HttpConn>(m_thread_num, m_requests_num);
 }
 
 void WebServer::log_init()
@@ -41,7 +41,7 @@ void WebServer::event_listen()
     struct sockaddr_in server_addr;
     bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(12346);
+    server_addr.sin_port = htons(12343);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     // 绑定服务器套接字
